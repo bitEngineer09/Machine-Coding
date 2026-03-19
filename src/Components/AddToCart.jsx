@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 const products = [
     {
@@ -6,7 +6,7 @@ const products = [
         title: "iPhone 14",
         price: 79999,
         category: "Electronics",
-        image: "https://images.unsplash.com/photo-1661961112951-f2bfd6f6c2c1",
+        image: "https://images.unsplash.com/photo-1663314326576-13b6ab7fd5d4?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fGlwaG9uZSUyMDE0fGVufDB8fDB8fHww",
         rating: 4.7,
         stock: 10,
     },
@@ -42,7 +42,7 @@ const products = [
         title: "Gaming Mouse",
         price: 1499,
         category: "Electronics",
-        image: "https://images.unsplash.com/photo-1587202372775-a1c8c4b3e3c3",
+        image: "https://images.unsplash.com/photo-1616296425622-4560a2ad83de?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8Z2FtaW5nJTIwbW91c2V8ZW58MHx8MHx8fDA%3D",
         rating: 4.4,
         stock: 30,
     },
@@ -60,7 +60,7 @@ const products = [
         title: "Bluetooth Speaker",
         price: 2999,
         category: "Electronics",
-        image: "https://images.unsplash.com/photo-1585386959984-a41552231658",
+        image: "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8c3BlYWtlcnxlbnwwfHwwfHx8MA%3D%3D",
         rating: 4.5,
         stock: 12,
     },
@@ -78,10 +78,29 @@ const products = [
 const AddToCart = () => {
 
     const [cart, setCart] = useState([]);
+    const cartRef = useRef(null);
+
+    const scrollToCart = () => {
+        cartRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
 
     const addToCart = (item) => {
-        setCart(prev => [...prev, { ...item }]);
+        setCart(prev => {
+            const exist = cart.find(i => i.id === item.id);
+            if (exist) {
+                return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+            }
+            return [...prev, { ...item, quantity: 1 }];
+        })
     };
+
+    const handleIncrease = (id) => {
+        setCart(prev => prev.map(i => i.id === id ? { ...i, quantity: i.quantity + 1 } : i));
+    }
+
+    const handleDecrease = (id) => {
+        setCart(prev => prev.map(i => i.id === id ? { ...i, quantity: i.quantity - 1 } : i).filter(item => item.quantity > 0));
+    }
 
     const remove = (id) => {
         setCart(prev => prev.filter(item => item.id !== id));
@@ -97,12 +116,14 @@ const AddToCart = () => {
                     <span className='absolute -top-4 size-6 rounded-full bg-red-500 text-white flex items-center justify-center'>
                         {cart.length}
                     </span>
-                    <span className='rounded border px-3 py-1'>Cart</span>
+                    <span
+                        onClick={scrollToCart}
+                        className='rounded border px-3 py-1 cursor-pointer'>Cart</span>
                 </div>
             </div>
 
             <p className='text-5xl font-bold mb-5'>All Products</p>
-            <div className='grid grid-cols-4 justify-items-center gap-4 w-full'>
+            <div className='grid grid-cols-5 justify-items-center gap-4 w-full'>
                 {
                     products.map(prod => {
                         const { id, title, price, category, image, rating } = prod;
@@ -122,43 +143,59 @@ const AddToCart = () => {
                 }
             </div>
 
-            <CartItems allItems={cart} remove={remove} />
+            <div ref={cartRef}>
+                <CartItems
+                    allItems={cart}
+                    remove={remove}
+                    handleIncrease={handleIncrease}
+                    handleDecrease={handleDecrease}
+                />
+            </div>
         </div>
     )
 }
 
 export default AddToCart;
 
+// PRODUCTS CARD
 const Products = ({ title, price, category, image, rating, item, add }) => {
 
     return (
-        <div className='flex flex-col border rounded w-70 p-2'>
+        <div className='flex flex-col gap-2 border-2 rounded-xl w-70 p-2'>
             <div className='flex items-center justify-between'>
                 <p>{title}</p>
                 <p className='rounded-full border px-1 bg-yellow-400'>{category}</p>
             </div>
-            <img src={image} className='w-full h-60 object-cover mt-2 rounded' />
+            <img src={image} className='w-full h-60 object-cover mt-2 rounded-2xl' />
             <div className='flex items-center justify-around mt-2 border rounded'>
                 <span>Rs.{price}</span>
                 <span>Ratings: {rating}</span>
             </div>
             <button
                 onClick={() => add(item)}
-                className='bg-emerald-500 h-8 mt-2 font-semibold text-white cursor-pointer hover:bg-emerald-700 transition-colors'>Add</button>
+                className='bg-emerald-500 h-8 rounded-full mt-2 font-semibold text-white cursor-pointer hover:bg-emerald-700 transition-colors'>Add</button>
         </div>
     )
 
 }
 
-const CartItems = ({ allItems, remove }) => {
+// CART ITEMS
+const CartItems = ({ allItems, remove, handleDecrease, handleIncrease }) => {
+
+    const totalAmount = allItems.reduce((acc, curr) => {
+        return acc + curr.price
+    }, 0);
+
+    let amount = allItems.filter(item => item.price);
+    console.log(amount);
     return (
         <div className='flex flex-col items-center justify-center'>
-            <p className='text-5xl my-4 font-bold text-center'>Cart Items</p>
+            <p className='text-5xl my-7 font-bold text-center'>Cart Items</p>
             <div className='grid grid-cols-4 gap-4 jusitfy-items-center'>
                 {
                     allItems.map(i => {
                         return (
-                            <div>
+                            <div key={i.id} className='flex flex-col gap-4'>
                                 <Products
                                     title={i.title}
                                     image={i.image}
@@ -166,14 +203,29 @@ const CartItems = ({ allItems, remove }) => {
                                     rating={i.rating}
                                     price={i.price}
                                 />
-                                <span
+
+                                {/* COUNTER */}
+                                <div className='w-full flex justify-between'>
+                                    <span
+                                        onClick={() => handleDecrease(i.id)}
+                                        className='size-7 cursor-pointer flex items-center justify-center text-white font-semibold text-2xl rounded-full bg-red-500'>-</span>
+                                    <p>Quantity: <span className='font-semibold'>{i.quantity}</span></p>
+                                    <span
+                                        onClick={() => handleIncrease(i.id)}
+                                        className='size-7 cursor-pointer flex items-center justify-center text-white font-semibold text-2xl rounded-full bg-green-500'>+</span>
+                                </div>
+
+                                {/* REMOVE FROM CART */}
+                                <p
                                     onClick={() => remove(i.id)}
-                                    className='bg-red-600 cursor-pointer text-white p-2 mt-5'>Remove Item: {i.title}</span>
+                                    className='bg-red-600 cursor-pointer rounded-full text-white p-2'>Remove Item: {i.title}
+                                </p>
                             </div>
                         )
                     })
                 }
             </div>
+            <p className='text-3xl font-semibold mt-2'>Total Amount: {totalAmount}</p>
         </div>
     )
 }
